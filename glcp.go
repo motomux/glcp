@@ -4,13 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
-	"go/build"
 	"go/format"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -21,33 +19,20 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) == 0 {
-		fmt.Println("No package name")
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "No package name")
+		return
 	}
 	for _, pkgname := range args {
-		pkg, err := build.Import(pkgname, ".", 0)
+
+		files, err := getPkgFiles(pkgname)
 		if err != nil {
-			if _, nogo := err.(*build.NoGoError); nogo {
-				// Don't complain if the failure is due to no Go source files.
-				return
-			}
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-
-		var files []string
-		files = append(files, pkg.GoFiles...)
-		files = append(files, pkg.CgoFiles...)
-		if pkg.Dir != "." {
-			for i, f := range files {
-				files[i] = filepath.Join(pkg.Dir, f)
-			}
-		}
-
 		err = addCommentsToFiles(files...)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			fmt.Fprintln(os.Stderr, err)
+			return
 		}
 	}
 }
