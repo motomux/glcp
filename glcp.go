@@ -120,6 +120,7 @@ func addDoc(file *ast.File, doc *ast.CommentGroup, name string, pos token.Pos) *
 	return doc
 }
 
+// ByPos is slice of CommentGroup for sorting
 type ByPos []*ast.CommentGroup
 
 func (s ByPos) Len() int {
