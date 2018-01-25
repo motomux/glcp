@@ -15,6 +15,10 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
+var (
+	write = flag.Bool("w", false, "write result to (source) file instead of stdout")
+)
+
 func main() {
 	flag.Parse()
 	args := flag.Args()
@@ -22,14 +26,14 @@ func main() {
 		fmt.Fprintln(os.Stderr, "No package name")
 		return
 	}
-	for _, pkgname := range args {
 
+	for _, pkgname := range args {
 		files, err := getPkgFiles(pkgname)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		err = addCommentsToFiles(files...)
+		err = addCommentsToFiles(*write, files...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -37,7 +41,7 @@ func main() {
 	}
 }
 
-func addCommentsToFiles(filenames ...string) error {
+func addCommentsToFiles(write bool, filenames ...string) error {
 	fset := token.NewFileSet()
 	files := make(map[string][]byte)
 	for _, filename := range filenames {
@@ -54,16 +58,23 @@ func addCommentsToFiles(filenames ...string) error {
 			return err
 		}
 
-		newFile, err := os.OpenFile(filename, os.O_WRONLY, os.ModeAppend)
-		if err != nil {
-			return err
-		}
-		err = format.Node(newFile, fset, f)
-		if err != nil {
-			return err
-		}
+		if write {
+			newFile, err := os.OpenFile(filename, os.O_WRONLY, os.ModeAppend)
+			if err != nil {
+				return err
+			}
+			err = format.Node(newFile, fset, f)
+			if err != nil {
+				return err
+			}
 
-		newFile.Close()
+			newFile.Close()
+		} else {
+			err = format.Node(os.Stdout, fset, f)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
